@@ -1,0 +1,21 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <title>Document</title>
+</head>
+<script src="http://lib.sinaapp.com/js/jquery/1.9.1/jquery-1.9.1.min.js"></script>
+<body>
+<p><span id="uid1">0</span><input type="button" value="用户1" onclick="vote(1);" /></p>
+<p><span id="uid2">0</span><input type="button" value="用户2" onclick="vote(2);" /></p>
+<p><span id="uid3">0</span><input type="button" value="用户3" onclick="vote(3);" /></p>
+</body>
+<script>
+    function vote(i){
+        $.get('./vote.php?uid='+i,function(rs){
+            var span = '#uid'+i;
+            $(span).html(rs);
+        });
+    }
+</script>
+</html>
