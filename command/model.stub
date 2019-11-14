@@ -1,0 +1,110 @@
+<?php
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
+
+/*
+ * 表Model
+ * @auth jackie <2019.07.>
+ */
+class Email extends Model
+{
+    protected $table = "table_name";
+
+    /**
+     * 不可被批量赋值的属性。
+     * @var array
+     */
+    protected $guarded = [];
+
+    public $timestamps = false;
+
+    public function scopeEmail($query)
+    {
+        return $query;
+    }
+
+    /*
+     * @param $id
+     * @auth jackie <2019.07.>
+     */
+    public function scopeID($query,$id)
+    {
+        return $query->where('id',$id);
+    }
+
+    /*
+     * @param $company_id 公司id
+     * @auth jackie <2019.07.>
+     */
+    public function scopeCompanyID($query,$company_id)
+    {
+        return $query->where('company_id',$company_id);
+    }
+
+    /**
+     * 表单验证(新增)
+     * $param $company_id 公司id
+     * $param $id 主键id
+     * @auth jackie <2017.07.>
+     */
+    public static function validateForCreate($data,$company_id='',$id='')
+    {
+        $messages = [
+            'email.required' => __("message.email.email_required"),
+            'email.email' => __("message.email.email_email"),
+            'email.unique' => __("message.email.email_unique"),
+            'password.required' => __("message.email.password_required"),
+            'password.min' => __("message.email.password_min"),
+        ];
+
+        return Validator::make($data,[
+            'email' => ['required','string','email','max:255', Rule::unique('recruit_email','email')->where(function ($query) use($company_id) {
+                $query->where('company_id', $company_id);
+            })->ignore($id,"id")],
+            'password' => 'required|string|min:6',
+        ],$messages);
+    }
+
+    /**
+     * 表单验证(编辑)
+     * $param $id 主键id
+     * @auth jackie <2017.07.>
+     */
+    public static function validateForUpdate($data,$id='')
+    {
+        $messages = [
+            'password.required' => __("message.email.password_required"),
+            'password.min' => __("message.email.password_min"),
+            'old_password.required' => __("message.email.old_password_required"),
+        ];
+
+        return Validator::make($data,[
+            'password' => 'required|string|min:6',
+            'old_password' => 'required',
+        ],$messages);
+    }
+
+    /**
+     * 后台表单验证
+     * $param $company_id 公司id
+     * $param $id 主键id
+     * @auth jackie <2017.01.03>
+     */
+    public static function validate($data,$company_id='',$id='')
+    {
+        $messages = [
+            'name.required' => __("message.exam.name_required"),
+            'name.max' => __("message.exam.name_max"),
+            'name.unique' => __("message.exam.name_unique"),
+        ];
+
+        return Validator::make($data,[
+            'name' => ['required','string','max:50', Rule::unique('recruit_exam','name')->where(function ($query) use($company_id) {
+                $query->where('company_id', $company_id);
+            })->ignore($id,"id")],
+        ],$messages);
+    }
+}

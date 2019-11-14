@@ -1,0 +1,142 @@
+<?php
+namespace DummyNamespace;
+
+use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\EmailCollection;
+use App\Http\Resources\Api\EmailResource;
+use App\Http\Resources\NoneResource;
+use App\Models\SelfModel;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+
+/*
+ * 控制类
+ * @auth jackie <2019.07.>
+ */
+class DummyClass extends Controller
+{
+    //首页
+    public function index(Request $request)
+    {
+        if(auth("authapi")->user() == null){
+            return NoneResource::make(null)->Error("Unauthorized")->statusCode(401);
+        }
+
+        $company_id = auth('authapi')->user()->company_id;
+        $data = SelfModel::with('company:id,virtual_eamil')->CompanyID($company_id)->get();
+        $company = isset($data[0]->company->virtual_eamil) ? $data[0]->company->virtual_eamil : '';
+
+        return EmailCollection::make($data)->setParamater($company)->Success();
+    }
+
+    //新增页面
+    public function create(Request $request)
+    {
+        //
+    }
+
+    //新增保存
+    public function store(Request $request)
+    {
+        if(auth("authapi")->user() == null){
+            return NoneResource::make(null)->Error("Unauthorized")->statusCode(401);
+        }
+        //接收参数
+        $params = $request->only('email','password');
+        $company_id = auth('authapi')->user()->company_id;
+        //表单验证
+        $validator = SelfModel::validateForCreate($params,$company_id);
+        if ($validator->fails()) {
+            return NoneResource::make(null)->Error($validator->errors()->getMessages());
+        }
+
+        $data = [
+            'email'=>$params['email'],
+            'password'=>encrypt($params["password"]),
+            'company_id'=>auth('authapi')->user()->company_id,
+            'created_at'=>Carbon::now(),
+        ];
+        $save = SelfModel::create($data);
+
+        if ($save) {
+            return NoneResource::make(null)->Success();
+        } else {
+            return NoneResource::make(null)->Error(__("message.common.failed"));
+        }
+    }
+
+    //视图
+    public function show($id)
+    {
+        //
+    }
+
+    //编辑页面数据
+    public function edit($id)
+    {
+        if(auth("authapi")->user() == null){
+            return NoneResource::make(null)->Error("Unauthorized")->statusCode(401);
+        }
+
+        $data = SelfModel::find($id);
+        if($data){
+            return EmailResource::make($data)->Success();
+        } else {
+            return NoneResource::make($data)->Success();
+        }
+
+    }
+
+    //编辑保存
+    public function update(Request $request,$id)
+    {
+        if(auth("authapi")->user() == null){
+            return NoneResource::make(null)->Error("Unauthorized")->statusCode(401);
+        }
+        $company_id = auth('authapi')->user()->company_id;
+
+        $params = $request->only('name','examQuestion');
+        $validator = Exam::validate($params,$company_id,$id);
+        if ($validator->fails()) {
+            return NoneResource::make(null)->Error($validator->errors()->getMessages());
+        }
+
+        $save = DB::transaction(function () use($params,$company_id,$id){
+            //笔试题库表
+            Exam::ID($id)->update([
+                'name'=>$params['name'],
+                'updated_at'=>Carbon::now(),
+            ]);
+            //笔试题目表
+            ExamQuestion::ExamID($id)->delete();
+            $info = [];
+            foreach ($params['examQuestion'] as $key=>$val)
+            {
+                $info[$key]['exam_id'] = $id;
+                $info[$key]['question'] = $val;
+                $info[$key]['created_at']=Carbon::now();
+                $info[$key]['updated_at']=Carbon::now();
+            }
+            ExamQuestion::insert($info);
+            unset($info);
+            return true;
+        });
+        if ($save) {
+            return NoneResource::make(null)->Success();
+        } else {
+            return NoneResource::make(null)->Error(__("message.common.failed"));
+        }
+
+    }
+
+    //删除
+    public function destroy($id)
+    {
+        $res = SelfModel::destroy($id);
+        if ($res) {
+            return NoneResource::make(null)->Success();
+        } else {
+            return NoneResource::make(null)->Error(__("message.common.failed"));
+        }
+    }
+}
